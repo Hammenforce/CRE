@@ -1,0 +1,82 @@
+# CRE (Complex Resonance Embedding) - Dual License
+
+Copyright (c) 2025 Sten Daniel Hammenfors
+
+## License Options
+
+This software is available under a dual licensing model:
+
+### 1. Academic and Non-Commercial Use License
+
+For academic research, educational purposes, personal projects, and non-commercial 
+use, this software is licensed under the **MIT License**:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction for NON-COMMERCIAL PURPOSES, including 
+without limitation the rights to use, copy, modify, merge, publish, and 
+distribute the Software for research and educational purposes, subject to 
+the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+### 2. Commercial Use License
+
+For any COMMERCIAL use, including but not limited to:
+- Integration into commercial products or services
+- Use in production systems that generate revenue
+- Deployment in commercial applications
+- Use by for-profit organizations in their products
+
+**A separate commercial license is required.**
+
+This architecture is protected by pending patent applications (Norwegian 
+Industrial Property Office, filed 2024-2025). Commercial users must obtain 
+a licensing agreement.
+
+**To obtain a commercial license, contact:**
+- Email: daniel.hammenfors@gmail.com
+- Subject: "CRE Commercial License Inquiry"
+
+## What Qualifies as Commercial Use?
+
+**Commercial use includes:**
+- Using CRE in a SaaS product
+- Using CRE to provide AI services for payment
+- Integrating CRE into commercial software
+- Using CRE in a company's production systems
+- Training models with CRE for commercial deployment
+
+**Non-commercial use includes:**
+- Academic research and publications
+- Educational coursework and teaching
+- Personal learning and experimentation
+- Open-source projects (non-commercial)
+- Benchmarking and evaluation studies
+
+## Patent Notice
+
+This technology is protected by pending patent applications covering the 
+Complex Resonance Embedding architecture, including but not limited to:
+- Push-pull state dynamics
+- Multi-frequency resonance mechanisms
+- Linear complexity sequence processing methods
+
+Patent filings: Norwegian Industrial Property Office (NIPO)
+Application status: Pending
+
+Unauthorized commercial use may constitute patent infringement.
+
+## Questions?
+
+If you're unsure whether your use case requires a commercial license, 
+please contact daniel.hammenfors@gmail.com for clarification.

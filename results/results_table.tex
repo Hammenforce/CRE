@@ -1,0 +1,123 @@
+% CRE Architecture Benchmark Results
+% Generated from scientific_benchmark_results.json
+% Date: 2025-11-14 (Third Run - FINAL VERIFIED)
+
+\section*{Supplementary Tables}
+
+\subsection*{Table S1: Model Configuration}
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Model & Parameters & $d_{\text{model}}$ & $n_{\text{layers}}$ \\
+\midrule
+CRE & 4,760,222 & 268 & 6 \\
+Transformer & 4,738,560 & 256 & 6 \\
+Flash Attention & 4,738,560 & 256 & 6 \\
+\midrule
+\multicolumn{4}{l}{Parameter Ratio (CRE/Transformer): 1.0046} \\
+\bottomrule
+\end{tabular}
+\caption{Model configurations with matched parameter counts.}
+\end{table}
+
+\subsection*{Table S2: Runtime Scaling (milliseconds)}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+$L$ & CRE & Transformer & Flash & Speedup (Trans/CRE) & Speedup (Flash/CRE) \\
+\midrule
+512 & 2.12 $\pm$ 0.04 & 2.59 $\pm$ 1.13 & 1.69 $\pm$ 0.18 & 1.22$\times$ & 0.80$\times$ \\
+1024 & 3.51 $\pm$ 0.45 & 2.48 $\pm$ 0.83 & 2.01 $\pm$ 0.75 & 0.71$\times$ & 0.57$\times$ \\
+2048 & 4.97 $\pm$ 0.08 & 4.82 $\pm$ 0.09 & 2.93 $\pm$ 0.08 & 0.97$\times$ & 0.59$\times$ \\
+4096 & 8.47 $\pm$ 0.12 & 15.81 $\pm$ 0.29 & 7.89 $\pm$ 0.13 & 1.87$\times$ & 0.93$\times$ \\
+8192 & 16.38 $\pm$ 0.07 & 56.38 $\pm$ 0.17 & 23.22 $\pm$ 0.10 & 3.44$\times$ & 1.42$\times$ \\
+16384 & 32.14 $\pm$ 0.12 & 698.99 $\pm$ 3.47 & 80.96 $\pm$ 0.16 & 21.75$\times$ & 2.52$\times$ \\
+32768 & 142.67 $\pm$ 0.23 & OOM & 302.60 $\pm$ 0.44 & -- & 2.12$\times$ \\
+\bottomrule
+\end{tabular}
+\caption{Runtime measurements with standard deviation over 20 trials (5 warmup).}
+\end{table}
+
+\subsection*{Table S3: Memory Usage (MB)}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+$L$ & CRE & Transformer & Flash & Reduction (Trans/CRE) \\
+\midrule
+512 & 69.8 & 99.0 & 71.5 & 1.42$\times$ \\
+1024 & 76.0 & 198.5 & 79.5 & 2.61$\times$ \\
+2048 & 88.6 & 590.3 & 96.3 & 6.66$\times$ \\
+4096 & 113.7 & 2139.5 & 127.5 & 18.81$\times$ \\
+8192 & 165.0 & 8311.5 & 191.5 & 50.37$\times$ \\
+16384 & 266.5 & 32943.5 & 319.5 & 123.59$\times$ \\
+32768 & 467.0 & OOM & 575.5 & -- \\
+\bottomrule
+\end{tabular}
+\caption{Peak GPU memory allocation. Standard Transformer encounters OOM at $L=32768$.}
+\end{table}
+
+\subsection*{Table S4: Effective Context Length (ECL-90)}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+$L$ & CRE & Transformer & Flash & Difference \\
+\midrule
+512 & 298.3 & 298.3 & 298.3 & 0.0\% \\
+1024 & 597.3 & 597.3 & 597.3 & 0.0\% \\
+2048 & 1195.0 & 1195.0 & 1195.0 & 0.0\% \\
+4096 & 2389.3 & 2389.3 & 2389.3 & 0.0\% \\
+\bottomrule
+\end{tabular}
+\caption{Effective Context Length at 90th percentile. All architectures achieve identical ECL.}
+\end{table}
+
+\subsection*{Table S5: Bracket Matching ROC-AUC}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+$L$ & CRE & Transformer & Flash & $p$-value \\
+\midrule
+512 & 0.8999 $\pm$ 0.0015 & 0.9252 $\pm$ 0.0011 & 0.9197 $\pm$ 0.0007 & 2.42e-09 \\
+1024 & 0.9011 $\pm$ 0.0015 & 0.9270 $\pm$ 0.0011 & 0.9210 $\pm$ 0.0010 & 2.07e-09 \\
+2048 & 0.8995 $\pm$ 0.0023 & 0.9265 $\pm$ 0.0014 & 0.9206 $\pm$ 0.0022 & 3.37e-08 \\
+4096 & 0.9011 $\pm$ 0.0010 & -- & 0.9212 $\pm$ 0.0005 & -- \\
+\bottomrule
+\end{tabular}
+\caption{Bracket matching task performance. Standard deviation over 5 random seeds. $p$-values from two-tailed independent $t$-test (CRE vs Transformer).}
+\end{table}
+
+\subsection*{Table S6: Ablation Study ($L=1024$)}
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Configuration & AUC & ECL-90 & Parameters \\
+\midrule
+Full CRE (push-pull, learnable decay) & 0.8914 & 461.0 & 4,760,222 \\
+No Push-Pull (cumsum only) & 0.8897 & 461.0 & 4,760,222 \\
+Fixed Decay (non-learnable) & 0.8897 & 461.0 & 4,760,216 \\
+\bottomrule
+\end{tabular}
+\caption{Ablation study examining component contributions under random initialization.}
+\end{table}
+
+\subsection*{Table S7: Statistical Significance Tests}
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Comparison ($L$) & $t$-statistic & $p$-value & Significant ($\alpha=0.05$) \\
+\midrule
+CRE vs Trans (512) & -28.60 & 2.42e-09 & Yes \\
+CRE vs Trans (1024) & -29.17 & 2.07e-09 & Yes \\
+CRE vs Trans (2048) & -20.49 & 3.37e-08 & Yes \\
+\bottomrule
+\end{tabular}
+\caption{Two-tailed independent samples $t$-tests for bracket matching AUC.}
+\end{table}
