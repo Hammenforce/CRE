@@ -4,7 +4,7 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch 2.0+](https://img.shields.io/badge/pytorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 
-A novel sequence processing architecture achieving **O(n) complexity** through push-pull cumulative dynamics and multi-frequency resonance.
+A novel sequence processing architecture achieving **O(n) complexity** through push-pull cumulative dynamics and position-modulated resonance.
 
 ## Key Results
 
@@ -34,35 +34,40 @@ CRE replaces quadratic attention with linear cumulative operations:
 
 ```
 Standard Attention: O(n²) - computes all pairwise interactions
-CRE:               O(n)  - cumulative push-pull with exponential decay
+CRE:               O(n)  - cumulative push-pull with position modulation
 ```
 
 ### Core Mechanism
 
 ```python
-# Push-Pull Dynamics
-P_t = α * P_{t-1} + g_t * v_t      # Push state (accumulation)
-Q_t = α * Q_{t-1} + (1-g_t) * v_t  # Pull state (subtraction)
-h_t = P_t - Q_t                     # Resonance output
+# Push-Pull Dynamics with Position Modulation
+g_t = sigmoid(W_g * x_t)           # Gate controls information routing
+v_t = W_v * x_t                    # Value projection
+
+P_t = cumsum(g * v)                # Push accumulator
+Q_t = cumsum((1-g) * v)            # Pull accumulator
+
+h_t = exp(-λt) * (P_t - Q_t)       # Position-modulated resonance output
 
 # Where:
-# α = exp(-λ) is learnable decay
-# g_t = sigmoid(W_g * x_t) controls information flow
-# v_t = W_v * x_t is the value projection
+# λ is a learnable decay rate
+# g_t ∈ (0,1) controls selective accumulation
+# The differential (P_t - Q_t) captures the resonance pattern
 ```
 
 ### Key Innovations
 
-1. **Push-Pull Dynamics**: Differential accumulation enables selective information retention
-2. **Multi-Frequency Resonance**: Multiple decay rates capture both short and long-term patterns
-3. **Gated Information Flow**: Learnable gates control what information enters each state
-4. **Linear Complexity**: All operations are O(n) in sequence length
+1. **Push-Pull Dynamics**: Differential accumulation enables selective information retention through complementary accumulators
+2. **Position Modulation**: Learnable exponential weighting normalizes cumulative sums and creates adaptive position-dependent patterns
+3. **Multi-Frequency Resonance**: Multiple modulation rates capture both short-term and long-term patterns
+4. **Gated Information Flow**: Learnable gates control what information enters each accumulator
+5. **Linear Complexity**: All operations are O(n) in sequence length
 
 ## Installation
 
 ```bash
 git clone https://github.com/Hammenforce/CRE.git
-cd cre-architecture
+cd CRE
 pip install torch numpy scipy scikit-learn matplotlib
 ```
 
@@ -156,9 +161,9 @@ This runs a quick benchmark with reduced parameters to verify everything works.
 ### Runtime Scaling
 
 CRE demonstrates linear runtime scaling:
-- L=512 → L=32768 (64x increase): Runtime grows 34x (sub-linear due to parallelization overhead at short sequences)
+- L=512 → L=32768 (64x increase): Runtime grows ~67x (sub-linear due to parallelization overhead at short sequences)
 - Transformer: Grows quadratically, OOM at L=32768
-- Flash Attention: 125x growth (still quadratic, but optimized)
+- Flash Attention: ~179x growth (still quadratic, but optimized)
 
 ### Memory Efficiency
 
@@ -179,7 +184,7 @@ The 2.5-percentage-point difference represents a modest trade-off for significan
 ## Repository Structure
 
 ```
-cre-architecture/
+CRE/
 ├── cre.py                      # Core architecture implementation
 ├── scientific_benchmark.py     # Comprehensive evaluation framework
 ├── README.md                   # This file
@@ -192,7 +197,8 @@ cre-architecture/
 │   ├── scientific_benchmark_results.png     # Visualization
 │   └── results_table.tex                    # LaTeX tables
 └── paper/
-    ├── CRE_paper.tex                 # Technical paper
+    ├── CRE_paper.tex                 # Technical paper (LaTeX)
+    ├── CRE_Paper_PlainText.md        # Technical paper (Markdown)
     └── references.bib                # References
 ```
 
@@ -220,6 +226,15 @@ The current implementation prioritizes:
 | Memory | O(n²) | O(n) |
 | Context Access | All-to-all | Cumulative |
 
+### Position Modulation vs Temporal Decay
+
+CRE uses **position modulation** rather than per-step temporal decay. The factor exp(-λt) applies to the cumulative sum at each position, serving to:
+1. Normalize growing cumulative sums
+2. Create learnable position-dependent weighting
+3. Enable the model to optimize position sensitivity
+
+This is distinct from architectures like Mamba or RWKV that use per-contribution decay. CRE's approach is simpler but still achieves competitive results, suggesting that the push-pull differential mechanism itself is the key innovation.
+
 ### Effective Context Length
 
 ECL-90 (positions containing 90% of influence) is identical for CRE and Transformer at all tested lengths, indicating equivalent information propagation capacity.
@@ -233,8 +248,9 @@ If you use this work in your research, please cite:
   title={Complex Resonance Embedding: Linear-Complexity Sequence Processing 
          via Push-Pull Dynamics},
   author={Hammenfors, Sten Daniel},
-  journal={arXiv preprint arXiv:2501.XXXXX},
-  year={2025}
+  journal={TechRxiv preprint},
+  year={2025},
+  doi={10.36227/techrxiv.XXXXX}
 }
 ```
 
