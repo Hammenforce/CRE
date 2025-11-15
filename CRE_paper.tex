@@ -37,12 +37,14 @@ The Transformer architecture \citep{vaswani2017attention} has become the foundat
 
 This complexity barrier has motivated substantial research into efficient alternatives. Sparse attention methods restrict computation to local neighborhoods or fixed patterns \citep{beltagy2020longformer, zaheer2020bigbird}. Kernel approximations linearize attention through feature maps \citep{choromanski2021performer, katharopoulos2020transformers}. State-space models employ continuous-time recurrences computable via convolution \citep{gu2022efficiently, gu2023mamba}. Flash Attention achieves significant speedups through memory-efficient algorithms without changing attention semantics \citep{dao2022flashattention}. Despite these advances, achieving true O($n$) complexity while maintaining Transformer-level quality remains an open challenge.
 
-This work introduces Complex Resonance Embedding (CRE), an architecture achieving O($n$) complexity through a fundamentally different computational primitive: gated cumulative operations with exponential decay. Rather than computing pairwise interactions between all positions, CRE maintains running states that accumulate information selectively. The key innovations are:
+This work introduces Complex Resonance Embedding (CRE), an architecture achieving O($n$) complexity through a fundamentally different computational primitive: gated cumulative operations with position modulation. Rather than computing pairwise interactions between all positions, CRE maintains running states that accumulate information selectively. The key innovations are:
 
 \begin{enumerate}
-\item \textbf{Push-pull cumulative dynamics}: Two complementary running sums---push (accumulation) and pull (subtraction)---whose difference captures temporal patterns through differential aggregation.
+\item \textbf{Push-pull cumulative dynamics}: Two complementary cumulative sums---push (accumulation) and pull (subtraction)---whose difference captures temporal patterns through differential aggregation.
 
-\item \textbf{Multi-frequency resonance}: Parallel processing at multiple decay rates enables simultaneous modeling of short-term and long-term dependencies.
+\item \textbf{Position-modulated output}: Learnable exponential weighting based on sequence position normalizes cumulative sums and creates adaptive position-dependent patterns.
+
+\item \textbf{Multi-frequency resonance}: Parallel processing at multiple modulation rates enables simultaneous modeling of different temporal scales.
 
 \item \textbf{Gated information flow}: Learned sigmoid gates control what information enters each accumulator, enabling selective retention.
 \end{enumerate}
@@ -69,7 +71,7 @@ requiring O($L^2$) memory for the attention matrix. CRE replaces this with cumul
 
 \subsection{Push-Pull Cumulative Mechanism}
 
-The core computation maintains two running states. At position $t$:
+The core computation maintains two cumulative states. At position $t$:
 
 \textbf{Gating and Value Projections:}
 \begin{align}
@@ -78,35 +80,36 @@ v_t &= W_v x_t + b_v
 \end{align}
 where $\sigma$ is the sigmoid function, $W_g, W_v \in \mathbb{R}^{d \times d}$, and $g_t \in (0,1)^d$ controls information flow.
 
-\textbf{State Updates:}
+\textbf{Cumulative Accumulation:}
 \begin{align}
-P_t &= e^{-\alpha} P_{t-1} + g_t \odot v_t \quad \text{(push)} \\
-Q_t &= e^{-\alpha} Q_{t-1} + (1-g_t) \odot v_t \quad \text{(pull)}
+P_t &= \sum_{i=1}^{t} g_i \odot v_i \quad \text{(push accumulator)} \\
+Q_t &= \sum_{i=1}^{t} (1-g_i) \odot v_i \quad \text{(pull accumulator)}
 \end{align}
-where $\alpha > 0$ is a learnable decay rate and $\odot$ denotes element-wise multiplication.
+where $\odot$ denotes element-wise multiplication.
 
-\textbf{Resonance Output:}
+\textbf{Position-Modulated Resonance Output:}
 \begin{equation}
-h_t = P_t - Q_t
+h_t = e^{-\lambda t} \cdot (P_t - Q_t)
 \end{equation}
 
-The push state accumulates information weighted by the gate, while the pull state accumulates the complement. Their difference produces output that reflects the balance of accumulated information. The exponential decay $e^{-\alpha}$ controls memory span.
+The push state accumulates information weighted by the gate, while the pull state accumulates the complement. Their difference produces a resonance pattern reflecting the balance of accumulated information. The position modulation factor $e^{-\lambda t}$ applies a learnable decay based on absolute position, which serves to normalize the growing cumulative sums and create a position-dependent weighting that the model can optimize.
 
 \subsection{Vectorized Implementation}
 
-For efficient parallel computation, the recurrence is implemented using cumulative sums:
+For efficient parallel computation, the mechanism is implemented using vectorized cumulative sums:
 \begin{align}
 \text{push}_t &= g_t \odot v_t \\
 \text{pull}_t &= (1 - g_t) \odot v_t \\
-P_t &= \sum_{i=1}^{t} e^{-\alpha(t-i)} \cdot \text{push}_i \\
-Q_t &= \sum_{i=1}^{t} e^{-\alpha(t-i)} \cdot \text{pull}_i
+P_t &= \text{cumsum}(\text{push})_t \\
+Q_t &= \text{cumsum}(\text{pull})_t \\
+h_t &= e^{-\lambda t} \cdot (P_t - Q_t)
 \end{align}
 
 This is computed efficiently as:
 \begin{equation}
-\text{cumsum}(\text{push}) \cdot \text{decay\_weights}
+(\text{cumsum}(\text{push}) - \text{cumsum}(\text{pull})) \cdot \text{decay\_weights}
 \end{equation}
-where decay\_weights are precomputed exponential factors. The entire operation is O($L \cdot d$) in time and O($L \cdot d$) in memory.
+where decay\_weights $= [e^{-\lambda \cdot 0}, e^{-\lambda \cdot 1}, \ldots, e^{-\lambda \cdot (L-1)}]$ are precomputed exponential factors. The entire operation is O($L \cdot d$) in time and O($L \cdot d$) in memory, with no sequential loops required.
 
 \subsection{Multi-Frequency Extension}
 
