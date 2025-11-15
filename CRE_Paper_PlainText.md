@@ -9,7 +9,7 @@
 
 ## ABSTRACT
 
-We introduce Complex Resonance Embedding (CRE), a novel sequence processing architecture that achieves O(n) time and memory complexity through push-pull cumulative dynamics. Unlike Transformer self-attention, which requires O(n²) complexity to compute all pairwise interactions, CRE maintains dual accumulator states that selectively aggregate information via learned gates and exponential decay. This enables linear scaling while preserving the ability to model long-range dependencies.
+We introduce Complex Resonance Embedding (CRE), a novel sequence processing architecture that achieves O(n) time and memory complexity through push-pull cumulative dynamics with position modulation. Unlike Transformer self-attention, which requires O(n²) complexity to compute all pairwise interactions, CRE maintains dual accumulator states that selectively aggregate information via learned gates, with the differential output modulated by a learnable position-dependent decay. This enables linear scaling while preserving the ability to model long-range dependencies.
 
 Empirical evaluation on matched-parameter models (4.76M vs 4.74M parameters, ratio 1.005) demonstrates:
 
@@ -39,50 +39,66 @@ This work introduces Complex Resonance Embedding (CRE), an alternative approach 
 
 ## 2. METHOD
 
-### 2.1 Push-Pull Dynamics
+### 2.1 Push-Pull Cumulative Dynamics
 
-The core innovation of CRE is the push-pull mechanism. For an input sequence X = (x₁, x₂, ..., xₙ), we compute:
+The core innovation of CRE is the push-pull cumulative mechanism with position-modulated output. For an input sequence X = (x₁, x₂, ..., xₙ), we compute:
 
 **Gate:** g_t = sigmoid(W_g · x_t + b_g)
 
 **Value:** v_t = W_v · x_t
 
-**Push state:** P_t = α · P_{t-1} + g_t · v_t
+**Push accumulation:** P_t = Σᵢ₌₁ᵗ gᵢ · vᵢ
 
-**Pull state:** Q_t = α · Q_{t-1} + (1 - g_t) · v_t
+**Pull accumulation:** Q_t = Σᵢ₌₁ᵗ (1 - gᵢ) · vᵢ
 
-**Output:** h_t = P_t - Q_t
+**Position modulation:** h_t = exp(-λt) · (P_t - Q_t)
 
-Where α = exp(-λ) is a learnable decay factor controlling memory persistence. The gate g_t ∈ (0, 1) controls how information flows into push versus pull states. When g_t ≈ 1, information primarily enters the push state; when g_t ≈ 0, it enters the pull state.
+The gate g_t ∈ (0, 1) controls how information is selectively routed into push versus pull accumulators. When g_t ≈ 1, information primarily enters the push state; when g_t ≈ 0, it enters the pull state. The differential (P_t - Q_t) creates a resonance pattern that captures the balance between accumulated signals.
+
+The position modulation factor exp(-λt) applies a learnable decay based on absolute sequence position. This serves two purposes: (1) it normalizes the growing cumulative sums, preventing unbounded growth, and (2) it creates a position-dependent weighting that the model can learn to optimize for the task.
 
 ### 2.2 Multi-Frequency Resonance
 
 To capture patterns at multiple temporal scales, we employ multiple frequency channels, each with its own decay rate:
 
 **For frequency f:**
-- λ_f determines the half-life of information
-- Smaller λ_f → longer memory (slower decay)
-- Larger λ_f → shorter memory (faster decay)
+- λ_f determines the modulation profile
+- Smaller λ_f → gentler position modulation
+- Larger λ_f → stronger position modulation
 
 The final output concatenates contributions from all frequencies:
 
 h_t = [h_t^(1); h_t^(2); ...; h_t^(F)]
 
-This multi-scale approach allows the model to simultaneously capture both short-term patterns (high frequency) and long-term dependencies (low frequency).
+This multi-scale approach allows the model to simultaneously capture different aspects of the cumulative signal, with each frequency band learning complementary patterns.
 
-### 2.3 Complexity Analysis
+### 2.3 Vectorized Implementation
+
+A key advantage of this formulation is that it can be computed efficiently using vectorized operations:
+
+```
+cumsum_push = cumsum(g * v, dim=sequence)
+cumsum_pull = cumsum((1-g) * v, dim=sequence)
+decay = exp(-λ * positions)
+output = (cumsum_push - cumsum_pull) * decay
+```
+
+This requires only O(n) cumulative sum operations followed by element-wise multiplication, achieving true linear complexity without sequential loops.
+
+### 2.4 Complexity Analysis
 
 **Time Complexity:** O(nd²) where d is the model dimension
 - Each position requires O(d²) operations for projections
-- n positions processed sequentially → O(nd²) total
+- Cumulative sum is O(nd) 
+- Total: O(nd²), linear in sequence length
 - Compare to Transformer: O(n²d)
 
-**Memory Complexity:** O(n)
-- States P, Q have size O(d), not O(n)
-- Total memory scales linearly with sequence length
+**Memory Complexity:** O(nd)
+- Store cumulative sums of size (n, d)
+- No attention matrices required
 - Compare to Transformer: O(n²) for attention matrix
 
-**Key insight:** CRE trades the quadratic all-to-all attention computation for linear cumulative operations, maintaining O(n) complexity regardless of sequence length.
+**Key insight:** CRE trades the quadratic all-to-all attention computation for linear cumulative operations with position modulation, maintaining O(n) complexity regardless of sequence length.
 
 ---
 
